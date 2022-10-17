@@ -11,3 +11,11 @@ RUN conda install python=3.9 pandas seaborn scipy scikit-learn tqdm ipykernel
 RUN conda install autograd ipywidgets 
 RUN conda install -c conda-forge numpyro arviz
 RUN conda install -c conda-forge plotly
+RUN conda install -c conda-forge numba
+
+# Install RRMPG
+RUN mkdir /tmp-pkg 
+RUN git clone https://github.com/kratzert/RRMPG /tmp-pkg/RRMPG
+WORKDIR /tmp-pkg/RRMPG
+RUN python setup.py install
+RUN rm -rf /tmp-pkg
