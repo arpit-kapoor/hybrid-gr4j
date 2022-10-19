@@ -7,11 +7,12 @@ ARG NODE_VERSION="none"
 RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
 
 # Configure conda environment
-RUN conda install python=3.9 pandas seaborn scipy scikit-learn tqdm ipykernel
+RUN conda install python=3.9 pandas seaborn scipy scikit-learn tqdm ipykernel pytorch
 RUN conda install autograd ipywidgets 
 RUN conda install -c conda-forge numpyro arviz
 RUN conda install -c conda-forge plotly
 RUN conda install -c conda-forge numba
+RUN pip install torchmetrics
 
 # Install RRMPG
 RUN mkdir /tmp-pkg 
