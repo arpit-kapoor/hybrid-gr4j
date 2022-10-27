@@ -13,6 +13,8 @@ RUN conda install -c conda-forge numpyro arviz
 RUN conda install -c conda-forge plotly
 RUN conda install -c conda-forge numba
 RUN pip install torchmetrics
+RUN pip install pyro-ppl
+RUN pip install pymc3
 
 # Install RRMPG
 RUN mkdir /tmp-pkg 
