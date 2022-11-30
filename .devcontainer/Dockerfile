@@ -15,6 +15,7 @@ RUN conda install -c conda-forge numba
 RUN pip install torchmetrics
 RUN pip install pyro-ppl
 RUN pip install pymc3
+RUN pip install pyyaml
 
 # Install RRMPG
 RUN mkdir /tmp-pkg 
