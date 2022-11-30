@@ -18,7 +18,12 @@ class CotterData(object):
         stream flow data
     """
 
-    def __init__(self, config_file:str, train_dates:tuple, val_dates:tuple, key:str='cotter', scale:bool=True, create_seq:bool=True, keep_z:bool=True) -> None:
+    def __init__(self, config_file:str, train_dates:tuple, 
+                val_dates:tuple, key:str='cotter', 
+                X_col = ['daily_rain', 'et_tall_crop'],
+                y_col = ['flow_ml'],
+                scale:bool=True, create_seq:bool=True, 
+                keep_z:bool=True, window_size:int=WINDOW_SIZE) -> None:
 
         # Read data config
         with open(config_file, 'r', encoding='UTF-8') as stream:
@@ -33,13 +38,15 @@ class CotterData(object):
         self._df = self.get_complete_data()
 
         # Cols
-        X_col = ['daily_rain', 'et_tall_crop', 'flow_ml']
-        y_col = ['flow_ml']
+        self.X_col = X_col
+        self.y_col = y_col
 
         # Input data
         dates = self._df[['date']]
         X = self._df[X_col]
         y = self._df[y_col]
+
+        self.window_size=window_size
 
         self.trainset, self.valset = self.process_data(
             X, y, dates, 
@@ -47,21 +54,27 @@ class CotterData(object):
             train_dates, 
             val_dates, 
             create_seq=create_seq, 
-            keep_z=keep_z
+            keep_z=keep_z,
+            window_size=window_size
         )
 
-    def get_dataloader(self, train=True, batch_size=64):
-        if train:
+    def get_dataloader(self, train=True, batch_size=64, shuffle=None):
+        if train: 
+            if shuffle is None:
+                shuffle = True
+
             return data.DataLoader(
-                self.trainset, shuffle=True, batch_size=batch_size
+                self.trainset, shuffle=shuffle, batch_size=batch_size
             )
         else:
+            if shuffle is None:
+                shuffle = False
             return data.DataLoader(
-                self.valset, shuffle=False, batch_size=batch_size
+                self.valset, shuffle=shuffle, batch_size=batch_size
             )
 
 
-    def create_sequence(self, X, y, keep_z=False, window_size=5):
+    def create_sequence(self, X, y, window_size, keep_z=False):
         # Create empyty sequences
         Xs, ys = [], []
 
@@ -70,7 +83,7 @@ class CotterData(object):
 
         # Add sequences to Xs and ys
         for i in range(len(X)-window_size):
-            Xs.append(X[i: (i + window_size)])
+            Xs.append(X[i: (i + window_size)+1])
             ys.append(y[i + window_size])
 
             if keep_z:
@@ -107,24 +120,43 @@ class CotterData(object):
         y_val = y[(dates.date>=val_dates[0])&(dates.date<=val_dates[1])]
 
         # Convert to Tensor
-        X_train = torch.from_numpy(X_train)
-        y_train = torch.from_numpy(y_train)
+        X_train = torch.from_numpy(X_train).float()
+        y_train = torch.from_numpy(y_train).float()
 
-        X_val = torch.from_numpy(X_val)
-        y_val = torch.from_numpy(y_val)
+        X_val = torch.from_numpy(X_val).float()
+        y_val = torch.from_numpy(y_val).float()
 
 
         # Create Sequences
         if create_seq:
             if keep_z:
-                X_train, y_train, z_train = self.create_sequence(X_train, y_train, keep_z)
-                X_val, y_val, z_val = self.create_sequence(X_val, y_val, keep_z)
+                X_train, y_train, z_train = self.create_sequence(
+                    X_train, y_train, 
+                    window_size=window_size, 
+                    keep_z=keep_z
+                )
+
+                X_val, y_val, z_val = self.create_sequence(
+                    X_val, y_val, 
+                    window_size=window_size, 
+                    keep_z=keep_z
+                )
 
                 trainset = data.TensorDataset(X_train, z_train, y_train)
                 valset = data.TensorDataset(X_val, z_val, y_val)
             else:
-                X_train, y_train = self.create_sequence(X_train, y_train, keep_z)
-                X_val, y_val = self.create_sequence(X_val, y_val, keep_z)
+                X_train, y_train = self.create_sequence(
+                    X_train, y_train, 
+                    window_size=window_size, 
+                    keep_z=keep_z
+                )
+
+                X_val, y_val = self.create_sequence(
+                    X_val, y_val, 
+                    window_size=window_size, 
+                    keep_z=keep_z
+                )
+
 
                 trainset = data.TensorDataset(X_train, y_train)
                 valset = data.TensorDataset(X_val, y_val)
