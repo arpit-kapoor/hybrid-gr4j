@@ -20,7 +20,7 @@ class CotterData(object):
 
     def __init__(self, config_file:str, train_dates:tuple, 
                 val_dates:tuple, key:str='cotter', 
-                X_col = ['daily_rain', 'et_tall_crop'],
+                X_col = ['daily_rain', 'et_tall_crop', 'mean_temp'],
                 y_col = ['flow_ml'],
                 scale:bool=True, create_seq:bool=True, 
                 keep_z:bool=True, window_size:int=WINDOW_SIZE) -> None:
@@ -36,6 +36,7 @@ class CotterData(object):
 
         # Read DF
         self._df = self.get_complete_data()
+        self._df['flow_ml'] = self._df['flow_ml']/100
 
         # Cols
         self.X_col = X_col
@@ -110,6 +111,10 @@ class CotterData(object):
             # Scale
             X = self.x_scaler.fit_transform(X)
             y = self.y_scaler.fit_transform(y)
+        
+        else:
+            X = X.values
+            y = y.values
 
         # Train data
         X_train = X[(dates.date>=train_dates[0])&(dates.date<=train_dates[1])]
