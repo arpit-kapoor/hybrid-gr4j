@@ -33,7 +33,7 @@ class LSTM(nn.Module):
                             self.output_dim)
 
         # Initialize weights
-        self.init_weights()
+        # self.init_weights()
 
     def forward(self, x):
 
