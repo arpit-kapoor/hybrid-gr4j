@@ -1,4 +1,0 @@
-cotter:
-  location: '/data/Cotter River/'
-  silos: '-35.55_148.85.csv'
-  gauge: '410730_daily_ts.csv'
