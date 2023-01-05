@@ -57,9 +57,9 @@ class CamelsAusDataset(object):
 
         # Add sequences to Xs and ys
         for i in range(len(X)-window_size):
-            Xs.append(X[i: (i + window_size)+1])
-            ys.append(y[i + window_size])
-            ts.append(t[i + window_size])
+            Xs.append(X[i: (i + window_size)])
+            ys.append(y[i + window_size-1])
+            ts.append(t[i + window_size-1])
 
         ts, Xs, ys = torch.stack(ts), torch.stack(Xs), torch.stack(ys)
 
