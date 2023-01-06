@@ -22,8 +22,10 @@ parser = argparse.ArgumentParser(description="""Slice CAMELS Australia
 
 parser.add_argument('--data-dir', type=str, default='/data/camels/aus/')
 parser.add_argument('--sub-dir', type=str, required=True)
-parser.add_argument('--scale', type=bool, default=True)
-parser.add_argument('--create-seq', type=bool, default=False)
+parser.add_argument('--scale', action='store_true')
+parser.add_argument('--no-scale', dest='scale', action='store_false')
+parser.add_argument('--create-seq', action='store_true')
+parser.add_argument('--no-seq', dest='create-seq', action='store_false')
 parser.add_argument('--window-size', type=int, default=7)
 
 # ------------------------------------------------
