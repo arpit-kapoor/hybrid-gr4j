@@ -11,6 +11,12 @@ import seaborn as sns
 import torch.utils.data as data
 
 
+def get_station_list(data_dir, sub_dir):
+    # Path to data directory
+    sub_dir_path = os.path.join(data_dir, '../processed', sub_dir)
+    write_dir_train = os.path.join(sub_dir_path, 'datasets/train')
+    return os.listdir(write_dir_train)
+
 
 def read_dataset_from_file(data_dir, sub_dir, station_id):
 

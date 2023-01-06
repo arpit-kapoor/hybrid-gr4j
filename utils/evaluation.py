@@ -26,8 +26,8 @@ def evaluate(P: np.ndarray, E: np.ndarray, Q: np.ndarray, Q_hat:np.ndarray):
     ax.plot(E, 'y--', label='etp', alpha=0.45)
 
     ax.set_xlabel('Timestep')
-    ax.set_ylabel('Flow')
+    ax.set_ylabel('Flow (mm/day)')
 
     plt.legend()
 
-    return fig
+    return nse_score
