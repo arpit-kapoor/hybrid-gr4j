@@ -30,4 +30,4 @@ def evaluate(P: np.ndarray, E: np.ndarray, Q: np.ndarray, Q_hat:np.ndarray):
 
     plt.legend()
 
-    return nse_score
+    return nse_score, nnse_score, fig

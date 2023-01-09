@@ -87,9 +87,9 @@ class CamelsAusDataset(object):
             coord_list.append(station_df[self.coord_col])
 
         
-        X = pd.concat(X_list, axis=0)
-        y = pd.concat(y_list, axis=0)
-        coord = pd.concat(coord_list, axis=0)
+        X = pd.concat(X_list, axis=0).reset_index(drop=True)
+        y = pd.concat(y_list, axis=0).reset_index(drop=True)
+        coord = pd.concat(coord_list, axis=0).reset_index(drop=True)
         
 
         # Scaling preference

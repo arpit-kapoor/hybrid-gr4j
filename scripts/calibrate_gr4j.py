@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import datetime as dt
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,9 +21,14 @@ parser = argparse.ArgumentParser(description="Calibrate GR4J model")
 parser.add_argument('--data-dir', type=str, default='/data/camels/aus/')
 parser.add_argument('--sub-dir', type=str, required=True)
 parser.add_argument('--station-id', type=str, default=None)
+parser.add_argument('--run-dir', type=str, default='/project/results/gr4j')
 
 
-def calibrate_gr4j(train_ds, val_ds):
+def calibrate_gr4j(train_ds, val_ds, station_id, run_dir='/project/results'):
+
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
+
     # Create model instance
     model = GR4J()
 
@@ -49,7 +55,8 @@ def calibrate_gr4j(train_ds, val_ds):
     # Simulate train data
     print("Evaluating on training data...")
     Q_hat = model.simulate(P_train, ET_train).flatten()
-    nse_train = evaluate(P_train, ET_train, Q_train, Q_hat)
+    nse_train, nnse_train, fig_train = evaluate(P_train, ET_train, Q_train, Q_hat)
+    fig_train.savefig(os.path.join(run_dir, f"{station_id}_train.png"))
 
     # Validation data tensors
     P_val = X_val[:, 0].detach().numpy()
@@ -59,12 +66,28 @@ def calibrate_gr4j(train_ds, val_ds):
     # Simulate val data
     print("Evaluating on validation data...")
     Q_hat = model.simulate(P_val, ET_val).flatten()
-    nse_val = evaluate(P_val, ET_val, Q_val, Q_hat)
+    nse_val, nnse_val, fig_val = evaluate(P_val, ET_val, Q_val, Q_hat)
+    fig_val.savefig(os.path.join(run_dir, f"{station_id}_val.png"))
+
+
+    # Write results to file
+    dikt = {
+        'station_id': station_id,
+        'nse_train': nse_train,
+        'nnse_train': nnse_train,
+        'nse_val': nse_val,
+        'nnse_val': nnse_val,
+        'run_ts': dt.datetime.now()
+    }
+    df = pd.DataFrame(dikt, index=[0])
+
+    csv_path = os.path.join(run_dir, 'result.csv')
+    if os.path.exists(csv_path):
+        df.to_csv(csv_path, mode='a', header=False, index=False)
+    else:
+        df.to_csv(csv_path, index=False)
 
     return nse_train, nse_val
-
-
-
 
 
 if __name__ == '__main__':
@@ -79,31 +102,24 @@ if __name__ == '__main__':
 
         station_ids = get_station_list(args.data_dir, args.sub_dir)
         for ind, station_id in enumerate(station_ids):
-            print(f"{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
+            print(f"\n{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
             train_ds, val_ds = read_dataset_from_file(args.data_dir, 
                                                       args.sub_dir, 
                                                       station_id=station_id)
-            print(f"Calibrating GR4J model..")
-            nse_train, nse_val = calibrate_gr4j(train_ds, val_ds)
-
-            dikt = {
-                'station_id': station_id,
-                'nse_train': nse_train,
-                'nse_val': nse_val
-            }
-
-            results_df = pd.concat([results_df, pd.DataFrame(dikt, index=[0])]).reset_index(drop=True)
-            print(" ")
-        
-        results_df.to_csv('/project/results/gr4j.csv')
+            print("Calibrating GR4J model..")
+            nse_train, nse_val = calibrate_gr4j(train_ds, val_ds,
+                                                run_dir=args.run_dir, 
+                                                station_id=args.station_id)
 
     else:
         print(f"Reading data for station_id: {args.station_id}")
         train_ds, val_ds = read_dataset_from_file(args.data_dir, 
                                                   args.sub_dir, 
                                                   station_id=args.station_id)
-        print(f"Calibrating GR4J model..")
-        nse_train, nse_val = calibrate_gr4j(train_ds, val_ds)
+        print("Calibrating GR4J model..")
+        nse_train, nse_val = calibrate_gr4j(train_ds, val_ds,
+                                            run_dir=args.run_dir, 
+                                            station_id=args.station_id)
 
 
 
