@@ -11,7 +11,7 @@ import torch
 from tqdm import tqdm
 
 sys.path.append('..')
-from dataset.camels_dataset import CamelsAusDataset
+from data.camels_dataset import CamelsAusDataset
 
 # ------------------------------------------------
 

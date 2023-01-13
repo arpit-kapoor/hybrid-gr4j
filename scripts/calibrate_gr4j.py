@@ -11,8 +11,8 @@ import torch.utils.data as data
 from rrmpg.models import GR4J
 
 sys.path.append("..")
-from utils.data import read_dataset_from_file, get_station_list
-from utils.evaluation import evaluate
+from data.utils import read_dataset_from_file, get_station_list
+from model.utils.evaluation import evaluate
 
 
 # Create parser
@@ -28,6 +28,10 @@ def calibrate_gr4j(train_ds, val_ds, station_id, run_dir='/project/results'):
 
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
+
+    plot_dir = os.path.join(run_dir, 'plots')
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
 
     # Create model instance
     model = GR4J()
@@ -56,7 +60,7 @@ def calibrate_gr4j(train_ds, val_ds, station_id, run_dir='/project/results'):
     print("Evaluating on training data...")
     Q_hat = model.simulate(P_train, ET_train).flatten()
     nse_train, nnse_train, fig_train = evaluate(P_train, ET_train, Q_train, Q_hat)
-    fig_train.savefig(os.path.join(run_dir, f"{station_id}_train.png"))
+    fig_train.savefig(os.path.join(plot_dir, f"{station_id}_train.png"))
 
     # Validation data tensors
     P_val = X_val[:, 0].detach().numpy()
@@ -67,7 +71,8 @@ def calibrate_gr4j(train_ds, val_ds, station_id, run_dir='/project/results'):
     print("Evaluating on validation data...")
     Q_hat = model.simulate(P_val, ET_val).flatten()
     nse_val, nnse_val, fig_val = evaluate(P_val, ET_val, Q_val, Q_hat)
-    fig_val.savefig(os.path.join(run_dir, f"{station_id}_val.png"))
+
+    fig_val.savefig(os.path.join(plot_dir, f"{station_id}_val.png"))
 
 
     # Write results to file
@@ -97,10 +102,8 @@ if __name__ == '__main__':
 
     if args.station_id is None:
 
-        results_df = pd.DataFrame(columns=['station_id', 'nse_train', 
-                                           'nse_val'])
-
         station_ids = get_station_list(args.data_dir, args.sub_dir)
+        
         for ind, station_id in enumerate(station_ids):
             print(f"\n{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
             train_ds, val_ds = read_dataset_from_file(args.data_dir, 
@@ -109,7 +112,7 @@ if __name__ == '__main__':
             print("Calibrating GR4J model..")
             nse_train, nse_val = calibrate_gr4j(train_ds, val_ds,
                                                 run_dir=args.run_dir, 
-                                                station_id=args.station_id)
+                                                station_id=station_id)
 
     else:
         print(f"Reading data for station_id: {args.station_id}")

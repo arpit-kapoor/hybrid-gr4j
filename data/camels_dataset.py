@@ -76,8 +76,14 @@ class CamelsAusDataset(object):
         for station_id in self.stations:
             station_ds = self.ds.sel(station_id=station_id)
             station_ds = station_ds[self.x_col + self.y_col].where(
-                                                                lambda x: x[self.y_col[0]].notnull(), 
-                                                                drop=True)
+                                    lambda x: x[self.y_col[0]].notnull(), 
+                                    drop=True
+                                )
+            for x_col in self.x_col:
+                station_ds = station_ds[self.x_col + self.y_col].where(
+                                    lambda x: x[x_col].notnull(), 
+                                    drop=True
+                                )
             station_df = station_ds.to_pandas().reset_index()
 
             station_df.time = station_df.time.apply(lambda x: time.mktime(x.timetuple()))

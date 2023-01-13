@@ -21,12 +21,18 @@ def evaluate(P: np.ndarray, E: np.ndarray, Q: np.ndarray, Q_hat:np.ndarray):
     # Plot hydrograph
     fig, ax = plt.subplots(figsize=(16, 6))
     ax.plot(Q, color='black', label='obs', alpha=1.0)
-    ax.plot(Q_hat, color='red', label='pred', alpha=0.7)
-    ax.plot(P, 'g--', label='precip', alpha=0.45)
-    ax.plot(E, 'y--', label='etp', alpha=0.45)
+    ax.plot(Q_hat, color='red', label='pred', alpha=0.75)
+    ax.plot(P, 'g--', label='precip', alpha=0.40)
+    ax.plot(E, 'y--', label='etp', alpha=0.30)
 
     ax.set_xlabel('Timestep')
     ax.set_ylabel('Flow (mm/day)')
+
+    ax.annotate(f'NSE: {nse_score:.4f}',
+            xy=(0.90, 0.92), xycoords='figure fraction',
+            horizontalalignment='right', verticalalignment='top',
+            fontsize=12)
+    ax.set_title('Streamflow prediction')
 
     plt.legend()
 
