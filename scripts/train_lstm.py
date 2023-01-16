@@ -13,7 +13,7 @@ import torch.utils.data as torchdata
 
 from tqdm import tqdm
 
-sys.path.append('/project')
+sys.path.append('..')
 from model.ml import LSTM
 from data.camels_dataset import CamelsAusDataset
 from data.utils import  read_dataset_from_file, get_station_list
@@ -31,6 +31,10 @@ parser.add_argument('--run-dir', type=str, default='/project/results/lstm')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--n-epoch', type=int, default=200)
 parser.add_argument('--lr', type=int, default=0.001)
+parser.add_argument('--input-dim', type=int, default=5)
+parser.add_argument('--hidden-dim', type=int, default=16)
+parser.add_argument('--n-layers', type=int, default=2)
+parser.add_argument('--dropout', type=float, default=0.3)
 
 
 
@@ -84,7 +88,8 @@ def evaluate_preds(model, ds, batch_size, x_scaler=None, y_scaler=None):
     P_train = np.concatenate(P, axis=0)
     ET_train = np.concatenate(ET, axis=0)
     Q_train = np.concatenate(Q, axis=0).flatten()
-    Q_hat = np.concatenate(Q_hat, axis=0).flatten()
+    Q_hat = np.clip(np.concatenate(Q_hat, axis=0).flatten(), 0, None)
+
 
     return evaluate(P_train, ET_train, Q_train, Q_hat)
 
@@ -92,7 +97,8 @@ def evaluate_preds(model, ds, batch_size, x_scaler=None, y_scaler=None):
 def train_and_evaluate_lstm(train_ds, val_ds,
                             station_id, n_epoch=100, 
                             batch_size=256, lr=0.001,
-                            run_dir='/project/results/lstm'):
+                            run_dir='/project/results/lstm',
+                            **kwargs):
     
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
@@ -111,17 +117,18 @@ def train_and_evaluate_lstm(train_ds, val_ds,
                                       shuffle=False)
 
     # Create model instance
-    model = LSTM(input_dim=5,
-                 hidden_dim=64,
+    model = LSTM(input_dim=kwargs['input_dim'],
+                 hidden_dim=kwargs['hidden_dim'],
                  output_dim=1,
-                 n_layers=2)
+                 n_layers=kwargs['n_layers'],
+                 dropout=kwargs['dropout'])
 
     # Create optimizer and loss instance
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
 
     # Early stopping
-    early_stopper = EarlyStopper(patience=10, min_delta=0.1)
+    early_stopper = EarlyStopper(patience=10, min_delta=0.01)
 
     pbar = tqdm(range(1, n_epoch+1))
 
@@ -148,9 +155,9 @@ def train_and_evaluate_lstm(train_ds, val_ds,
     
     # Evaluate on val data
     nse_val, nnse_val, fig_val = evaluate_preds(model, val_ds,
-                                                      batch_size=batch_size, 
-                                                      x_scaler=x_scaler, 
-                                                      y_scaler=y_scaler)
+                                                batch_size=batch_size, 
+                                                x_scaler=x_scaler, 
+                                                y_scaler=y_scaler)
    
     fig_val.savefig(os.path.join(plot_dir, f"{station_id}_val.png"))
 
@@ -189,18 +196,16 @@ if __name__ == '__main__':
         
         for ind, station_id in enumerate(station_ids):
             print(f"\n{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
+            args.station_id = station_id
             train_ds, val_ds, x_scaler, y_scaler  = read_dataset_from_file(
                                                         args.data_dir, 
                                                         args.sub_dir, 
                                                         station_id=station_id
                                                     )
-            
             print("Training the neural network model..")
             nse_train, nse_val = train_and_evaluate_lstm(
-                                    train_ds, val_ds, station_id, 
-                                    n_epoch=args.n_epoch, 
-                                    batch_size=args.batch_size, 
-                                    lr=args.lr, run_dir=args.run_dir
+                                    train_ds, val_ds, 
+                                    **vars(args)
                                 )
 
     else:
@@ -210,11 +215,8 @@ if __name__ == '__main__':
                                                     args.sub_dir, 
                                                     station_id=args.station_id
                                                 )
-        
         print("Training the neural network model..")
         nse_train, nse_val = train_and_evaluate_lstm(
-                                train_ds, val_ds, args.station_id, 
-                                n_epoch=args.n_epoch, 
-                                batch_size=args.batch_size, 
-                                lr=args.lr, run_dir=args.run_dir
+                                train_ds, val_ds,
+                                **vars(args)
                             )

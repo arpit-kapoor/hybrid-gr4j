@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, n_layers):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, dropout=0.5):
                 
         super().__init__()
 
@@ -32,8 +32,10 @@ class LSTM(nn.Module):
         self.fc2 = nn.Linear(self.hidden_dim,
                             self.output_dim)
 
+        self.do = nn.Dropout(p=dropout)
+
         # Initialize weights
-        # self.init_weights()
+        self.init_weights()
 
     def forward(self, x):
 
@@ -51,6 +53,7 @@ class LSTM(nn.Module):
 
         # Reshaping the outputs such that it can be fit into the fully connected layer
         out = torch.tanh(out[:, -1, :].contiguous().view(-1, self.hidden_dim))
+        out = self.do(out)
         out = torch.tanh(self.fc1(out))
         out = self.fc2(out)
 

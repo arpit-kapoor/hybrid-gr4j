@@ -1,4 +1,4 @@
-name: base
+name: hydroml
 channels:
   - conda-forge
   - defaults
@@ -216,7 +216,6 @@ dependencies:
     - pyproj==3.4.1
     - pyro-api==0.1.2
     - pyro-ppl==1.8.3
-    - rrmpg==0.1.1
     - scikit-optimize==0.9.0
     - scipy==1.7.3
     - semver==2.13.0

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#PBS -N CREATE_ML_DATA
+#PBS -l select=1:ncpus=8:mem=32gb 
+#PBS -l walltime=12:00:00 
+#PBS -M arpit.kapoor@unsw.edu.au 
+#PBS -m ae
+#PBS -j oe
+#PBS -o /home/z5370003/logs/create_ml_data.log
+
+cd $PBS_O_WORKDIR
+
+~/miniconda3/envs/hydroml/bin/python create_datasets.py --data-dir ~/data/camels/aus --sub-dir scale-seq-4 --scale --create-seq --window-size 4
+

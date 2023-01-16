@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../data"
+		},
+		{
+			"path": "../../logs"
+		},
+		{
+			"path": "../../results"
+		}
+	],
+	"settings": {}
+}
