@@ -18,16 +18,21 @@ class HyGR4JNN(nn.Module):
 
         # GR4J param
         self.s_init = torch.tensor(s_init)
-        self.x1 = torch.tensor(579.6377, requires_grad=False) # nn.Parameter(dist.uniform.Uniform(100, 1200).sample())
-        # self.register_parameter(name='x1', param=self.x1)
+        self.x1 = dist.uniform.Uniform(100, 1000).sample()
 
         # NN
-        self.h1 = nn.Linear(8, 64)
-        self.h2 = nn.Linear(64, 32)
-        self.h3 = nn.Linear(32, 16)
-        self.o = nn.Linear(16, 1)
+        self.h1 = nn.Linear(9, 128)
+        self.h2 = nn.Linear(128, 64)
+        self.h3 = nn.Linear(64, 32)
+        self.o = nn.Linear(32, 1)
 
         self.g = F.relu
+    
+    def set_x1(self, value: float) -> None:
+        self.x1 = torch.tensor(value, dtype=torch.float)
+    
+    def get_x1(self):
+        return self.x1.detach().numpy()
 
 
     def forward(self, x):

@@ -82,7 +82,11 @@ def calibrate_gr4j(train_ds, val_ds, station_id, run_dir='/project/results'):
         'nnse_train': nnse_train,
         'nse_val': nse_val,
         'nnse_val': nnse_val,
-        'run_ts': dt.datetime.now()
+        'run_ts': dt.datetime.now(),
+        'x1': params['x1'],
+        'x2': params['x2'],
+        'x3': params['x3'],
+        'x4': params['x4']
     }
     df = pd.DataFrame(dikt, index=[0])
 

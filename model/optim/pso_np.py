@@ -28,6 +28,12 @@ class Particle(object):
         self.error =  self.fitness_function(self.position)# curr error
         self.best_part_pos =  self.position.copy()
         self.best_part_err = self.error # best error
+    
+    def __str__(self):
+        return f"{str(self.position), str(self.velocity)}"
+    
+    def __repr__(self) -> str:
+        return str(self)
 
 
 class PSO(object):
