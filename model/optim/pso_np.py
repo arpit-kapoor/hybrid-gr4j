@@ -14,7 +14,8 @@ np.set_printoptions(suppress=True)
 class Particle(object):
     def __init__(self, num_params:int, fitness_function:Callable,
                  max_limits: np.ndarray, min_limits: np.ndarray,
-                 max_limits_vel, min_limits_vel):
+                 max_limits_vel: np.ndarray, min_limits_vel: np.ndarray,
+                 init_val: np.ndarray=None):
 
         self.fitness_function = fitness_function
         r_pos = np.asarray(random.sample(range(1, num_params+1), num_params) )/ (num_params+1) #to force using random without np and convert to np (to avoid multiprocessing random seed issue)
@@ -22,7 +23,12 @@ class Particle(object):
         np_pos = np.random.rand(num_params)/2 + r_pos/2
         np_vel = np.random.rand(num_params)/2 + r_pos/2
 
-        self.position = ((max_limits - min_limits) * np_pos  + min_limits) # using random.rand() rather than np.random.rand() to avoid multiprocesssing random issues
+        if init_val is None:
+            self.position = ((max_limits - min_limits) * np_pos  + min_limits) 
+            # using random.rand() rather than np.random.rand() to avoid multiprocesssing random issues
+        else:
+            self.position = init_val
+
         self.velocity = ((max_limits_vel - min_limits_vel) * np_vel  + min_limits_vel)
 
         self.error =  self.fitness_function(self.position)# curr error
@@ -38,7 +44,7 @@ class Particle(object):
 
 class PSO(object):
     
-    def __init__(self, pop_size, num_params, fitness_function,
+    def __init__(self, pop_size, num_params, fitness_function, mu, std,
                  max_limits, min_limits, max_limits_vel, min_limits_vel):
         
         self.fitness_function = fitness_function
@@ -48,11 +54,25 @@ class PSO(object):
         self.max_limits = max_limits
         self.min_limits_vel = min_limits_vel
         self.max_limits_vel = max_limits_vel
-        self.swarm, self.best_swarm_pos, self.best_swarm_err = self.create_swarm()
+        self.mu = mu
+        self.std = std
+        self.swarm, self.best_swarm_pos, self.best_swarm_err = self.create_swarm(mu=self.mu, std=self.std)
 
 
-    def create_swarm(self):
-        swarm = [Particle(num_params=self.num_params, max_limits=self.max_limits, min_limits=self.min_limits, fitness_function=self.fitness_function, max_limits_vel=self.max_limits_vel, min_limits_vel=self.min_limits_vel) for i in range(self.pop_size)] 
+    def create_swarm(self, mu, std):
+
+        init_vals = np.random.normal(loc=mu, scale=std, size=(self.pop_size, self.num_params))
+
+        swarm = [Particle(num_params=self.num_params, init_val=init_vals[i],
+                          fitness_function=self.fitness_function, 
+                          max_limits=self.max_limits, 
+                          min_limits=self.min_limits, 
+                          max_limits_vel=self.max_limits_vel, 
+                          min_limits_vel=self.min_limits_vel) 
+            for i in range(self.pop_size)
+        ]
+
+
         best_swarm_pos = [0.0 for i in range(self.num_params)] # not necess.
         best_swarm_err = sys.float_info.max # swarm best
         for i in range(self.pop_size): # check each particle

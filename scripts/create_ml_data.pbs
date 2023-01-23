@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #PBS -N CREATE_ML_DATA
-#PBS -l select=1:ncpus=8:mem=32gb 
+#PBS -l select=1:ncpus=8:mem=16gb 
 #PBS -l walltime=12:00:00 
 #PBS -M arpit.kapoor@unsw.edu.au 
 #PBS -m ae

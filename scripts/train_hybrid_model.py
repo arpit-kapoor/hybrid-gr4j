@@ -8,7 +8,7 @@ import datetime as dt
 
 import os
 import sys
-sys.path.append("/project")
+sys.path.append("..")
 
 from model.hybrid.hgr4j_ann import HyGR4JNN
 from model.utils.training import EarlyStopper
@@ -17,14 +17,14 @@ from model.optim.pso_np import PSO
 from data.utils import read_dataset_from_file, get_station_list
 
 # %%
-data_dir = '/data/camels/aus/'
-sub_dir = 'no-scale'
+data_dir = '/home/z5370003/data/camels/aus/'
+sub_dir = 'no-scale-seq'
 station_id = '318076'
-run_dir = '/project/results/hygr4j'
+run_dir = '/home/z5370003/results/hygr4j'
 
-n_epochs = 2
-n_samples = 1
-pop_size = 10
+n_epochs = 150
+n_samples = 5
+pop_size = 20
 lr = 1e-2
 
 # %%
@@ -46,12 +46,15 @@ t_val, X_val, y_val = val_ds.tensors
 
 # %%
 model = HyGR4JNN(0.0)
-model.set_x1(817.2529155367329)
+min_pos = 100.0
+max_pos = 1200.0
+mu = np.array([817.253])
+std = (max_pos - mu)/2
 
 opt = optim.Adam(model.parameters(), lr=lr)
 mse_loss = nn.MSELoss()
 
-early_stopper = EarlyStopper(patience=5, min_delta=0.01)
+early_stopper = EarlyStopper(patience=5, min_delta=0.05)
 
 # %%
 def fit_fn(params):
@@ -60,16 +63,19 @@ def fit_fn(params):
     return mse_loss(y_hat, y_train).detach().numpy()
 
 # %%
+print(f"Initialize PSO.. time: {dt.datetime.now().time()}")
 dims = 1
 pso = PSO(
     pop_size=pop_size,
     fitness_function=fit_fn,
     num_params=dims,
-    max_limits=900*np.ones(dims),
-    min_limits=200*np.ones(dims),
+    mu=mu, std=std,
+    max_limits=max_pos*np.ones(dims),
+    min_limits=min_pos*np.ones(dims),
     max_limits_vel=5*np.ones(dims),
     min_limits_vel=-5*np.ones(dims)
 )
+print(f"Train Model.. time: {dt.datetime.now().time()}")
 
 # %%
 X_train = torch.nan_to_num(X_train)
@@ -82,18 +88,20 @@ for i in range(n_epochs):
 
     start_ts = dt.datetime.now()
 
-    swarm, best_pos, best_fit = pso.swarm, pso.best_swarm_pos, pso.best_swarm_err
+    if i % n_samples == 0:
 
-    for j in range(n_samples):
+        swarm, best_pos, best_fit = pso.swarm, pso.best_swarm_pos, pso.best_swarm_err
+
         swarm, best_pos, best_fit = pso.evolve(swarm, best_pos, best_fit)
 
-    pso_ts = dt.datetime.now()
-    pso_time = pso_ts - start_ts
+        pso_ts = dt.datetime.now()
+        pso_time = pso_ts - start_ts
+
+        model.set_x1(best_pos[0])
 
     opt.zero_grad()
     model.train()
 
-    model.set_x1(best_pos[0])
     y_hat = model(X_train)
     
     loss = mse_loss(y_hat, y_train)
@@ -109,7 +117,7 @@ for i in range(n_epochs):
     
     val_loss = mse_loss(y_val_hat, y_val)
 
-    print(f"Epoch: {i+1}: train loss: {loss.detach().numpy():.4f} val loss: {val_loss.detach().numpy():.4f} best_pos: {best_pos}")
+    print(f"Epoch: {i+1}: train loss: {loss.detach().numpy():.4f} val loss: {val_loss.detach().numpy():.4f} best_pos: {best_pos[0]:.2f} timestamp: {dt.datetime.now().time()}")
 
     if val_loss < best_val:
         torch.save(model, os.path.join(run_dir, 'best_model.pt'))
@@ -128,15 +136,13 @@ loss = mse_loss(y_hat, y_train)
 y_val_hat = model(X_val)
 val_loss = mse_loss(y_val_hat, y_val)
 
-print(loss, val_loss)
-
 # %%
 P = X_train[:, 0].detach().numpy()
 E = X_train[:, 1].detach().numpy()
 Q = y_train.detach().numpy()
 Q_hat = y_hat.detach().numpy()
 
-print(evaluate(P, E, Q, Q_hat))
+evaluate(P, E, Q, Q_hat)
 
 # %%
 P = X_val[:, 0].detach().numpy()
@@ -144,5 +150,5 @@ E = X_val[:, 1].detach().numpy()
 Q = y_val.detach().numpy()
 Q_hat = y_val_hat.detach().numpy()
 
-print(evaluate(P, E, Q, Q_hat))
+evaluate(P, E, Q, Q_hat)
 
