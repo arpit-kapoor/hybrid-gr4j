@@ -186,10 +186,6 @@ if __name__ == '__main__':
     # Parse command line arguments
     args = parser.parse_args()
 
-
-    # Parse command line arguments
-    args = parser.parse_args()
-
     if args.station_id is None:
 
         station_ids = get_station_list(args.data_dir, args.sub_dir)

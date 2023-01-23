@@ -44,8 +44,9 @@ class Particle(object):
 
 class PSO(object):
     
-    def __init__(self, pop_size, num_params, fitness_function, mu, std,
-                 max_limits, min_limits, max_limits_vel, min_limits_vel):
+    def __init__(self, pop_size, num_params, fitness_function,
+                 max_limits, min_limits, max_limits_vel, min_limits_vel,
+                 mu=None, std=None):
         
         self.fitness_function = fitness_function
         self.num_params = num_params
@@ -59,9 +60,12 @@ class PSO(object):
         self.swarm, self.best_swarm_pos, self.best_swarm_err = self.create_swarm(mu=self.mu, std=self.std)
 
 
-    def create_swarm(self, mu, std):
+    def create_swarm(self, mu=None, std=None):
 
-        init_vals = np.random.normal(loc=mu, scale=std, size=(self.pop_size, self.num_params))
+        if mu is not None:
+            init_vals = np.random.normal(loc=mu, scale=std, size=(self.pop_size, self.num_params))
+        else:
+            init_vals = [None for i in range(self.pop_size)]
 
         swarm = [Particle(num_params=self.num_params, init_val=init_vals[i],
                           fitness_function=self.fitness_function, 
