@@ -11,8 +11,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as torchdata
 
-from tqdm import tqdm
-
 sys.path.append("..")
 
 from model.hybrid.hgr4j_ann import HyGR4JNN
@@ -150,9 +148,7 @@ def train_and_evaluate(train_ds, val_ds,
     # Early stopping
     early_stopper = EarlyStopper(patience=10, min_delta=0.01)
 
-    pbar = tqdm(range(1, n_epoch+1))
-
-    for epoch in pbar:
+    for epoch in range(1, n_epoch+1):
 
         # Train step
         train_loss, best_pos = train_step(model, pso, X_train, y_train, 
@@ -213,8 +209,7 @@ if __name__ == '__main__':
 
     if args.station_id is None:
 
-        station_ids = get_station_list(args.data_dir, args.sub_dir)[:10]
-        
+        station_ids = np.random.choice(get_station_list(args.data_dir, args.sub_dir), 10)
         for ind, station_id in enumerate(station_ids):
             print(f"\n{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
             args.station_id = station_id
