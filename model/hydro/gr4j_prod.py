@@ -12,13 +12,13 @@ import torch.distributions as dist
 
 class ProductionStorage(nn.Module):
     
-    def __init__(self, s_init: float=0.0, x1: torch.Tensor=None,
+    def __init__(self, s_init: float=0.0, x1: float=None,
                 mu: torch.Tensor=None, sigma: torch.Tensor=None) -> None:
         super(ProductionStorage, self).__init__()
         self.s_init = s_init
         if x1 is None:
             x1 = dist.uniform.Uniform(100, 1000).sample()
-        self.x1 = x1
+        self.set_x1(x1)
         self.mu = mu
         self.sigma = sigma
 
@@ -28,7 +28,7 @@ class ProductionStorage(nn.Module):
     def get_x1(self):
         return self.x1.detach().numpy()
 
-    def forward(self, x):
+    def forward(self, x, scale=True, include_x=False):
         # Precip and Evaporanspiration
         P = x[:, 0]
         E = x[:, 1]
@@ -78,15 +78,20 @@ class ProductionStorage(nn.Module):
         e_n = e_n[:, None]
         p_s = torch.stack(p_s_list)[:, None] 
         perc = torch.stack(perc_list)[:, None]
+        s_store = torch.stack(s_store_list)[:, None] 
         
         # Concatenate
-        out = torch.concat([x, p_n, e_n, p_s, perc], dim=1)
+        if include_x:
+            out = torch.concat([x, p_n, e_n, p_s, perc], dim=1)
+        else:
+            out = torch.concat([p_n, e_n, p_s, perc], dim=1)
 
         # Scale
-        if self.mu is None and self.sigma is None:
-            self.mu = out.mean(dim=0)
-            self.sigma = out.std(dim=0)
+        if scale:
+            if self.mu is None and self.sigma is None:
+                self.mu = out.mean(dim=0)
+                self.sigma = out.std(dim=0)
 
-        out = (out - self.mu)/self.sigma
+            out = (out - self.mu)/self.sigma
 
-        return out
+        return out, s_store

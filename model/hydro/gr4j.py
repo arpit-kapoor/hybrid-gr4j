@@ -18,10 +18,10 @@ class GR4J(object):
 
     def update_params(self, x1, x2, x3, x4):
         self._params = {
-            'x1': x1,
-            'x2': x2,
-            'x3': x3,
-            'x4': x4
+            'x1': torch.tensor(x1, dtype=torch.float),
+            'x2': torch.tensor(x2, dtype=torch.float),
+            'x3': torch.tensor(x3, dtype=torch.float),
+            'x4': torch.tensor(x4, dtype=torch.float),
         }
 
     def _s_curve1(self, t, x4):
@@ -99,6 +99,9 @@ class GR4J(object):
         # arrys to store the rain distributed through the unit hydrographs
         uh1 = torch.zeros(num_uh1)
         uh2 = torch.zeros(num_uh2)
+
+        e_s_list = []
+        p_s_list = []
         
         # Start the model simulation loop
         for t in range(1, num_timesteps+1):
@@ -128,6 +131,10 @@ class GR4J(object):
                 # no rain that is allocation to the production store
                 p_s = 0
                 
+            
+            p_s_list.append(p_s)
+            e_s_list.append(e_s)
+
             # Calculate the new storage content
             s_store[t] = s_store[t-1] - e_s + p_s
             
@@ -170,6 +177,15 @@ class GR4J(object):
             
             # total discharge of this timestep
             qsim[t] = q_r + q_d
-            
-        # return all but the artificial 0's step
-        return qsim[1:], s_store[1:], r_store[1:]
+
+
+        # Reshape
+        qsim = qsim[1:].detach().reshape(-1, 1)
+        s_store = s_store[1:].detach().reshape(-1, 1)
+        r_store = r_store[1:].detach().reshape(-1, 1)
+
+        p_s = torch.tensor(p_s_list)
+        e_s = torch.tensor(e_s_list)
+
+        
+        return qsim, s_store, r_store

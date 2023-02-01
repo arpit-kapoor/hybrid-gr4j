@@ -119,24 +119,37 @@ class CamelsAusDataset(object):
 
             indices = coord.index[coord.station_id==station_id]
 
-            indices_train, indices_val = train_test_split(indices, test_size=0.3, shuffle=False)
+            indices_train, indices_val = train_test_split(indices, 
+                                                          test_size=0.3, 
+                                                          shuffle=False)
 
-            X_train, X_val = torch.from_numpy(X[indices_train]), torch.from_numpy(X[indices_val])
-            y_train, y_val = torch.from_numpy(y[indices_train]), torch.from_numpy(y[indices_val])
-            time_train, time_val = (torch.from_numpy(coord.values[indices_train, 1].astype('float')), 
-                                   torch.from_numpy(coord.values[indices_val, 1].astype('float')))
+            X_train, X_val = (
+                torch.from_numpy(X[indices_train]), 
+                torch.from_numpy(X[indices_val])
+            )
+            y_train, y_val = (
+                torch.from_numpy(y[indices_train]), 
+                torch.from_numpy(y[indices_val])
+            )
+            time_train, time_val = (
+                torch.from_numpy(
+                    coord.values[indices_train, 1].astype('float')
+                ), torch.from_numpy(
+                    coord.values[indices_val, 1].astype('float')
+                )
+            )
 
             # Create Sequences
             if create_seq:
-                    time_train, X_train, y_train = self.create_sequence(
-                        time_train, X_train, y_train, 
-                        window_size=window_size
-                    )
+                time_train, X_train, y_train = self.create_sequence(
+                    time_train, X_train, y_train, 
+                    window_size=window_size
+                )
 
-                    time_val, X_val, y_val = self.create_sequence(
-                        time_val, X_val, y_val, 
-                        window_size=window_size
-                    )
+                time_val, X_val, y_val = self.create_sequence(
+                    time_val, X_val, y_val, 
+                    window_size=window_size
+                )
 
             ds_store[station_id] = {
                 'train': data.TensorDataset(time_train, X_train, y_train),
