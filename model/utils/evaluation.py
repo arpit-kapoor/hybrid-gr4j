@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 def nse(targets: np.ndarray, predictions: np.ndarray):
-    return 1-(np.sum((targets-predictions)**2)/np.sum((targets-np.mean(targets))**2))
+    return 1-(np.sum(np.square(targets-predictions))/np.sum(np.square(targets-np.mean(targets))))
 
 def normalize(x):
     return 1/(2 - x)
