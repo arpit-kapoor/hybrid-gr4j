@@ -32,9 +32,9 @@ parser.add_argument('--station-id', type=str, default=None)
 parser.add_argument('--run-dir', type=str, default='/project/results/lstm')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--n-epoch', type=int, default=300)
-parser.add_argument('--lr', type=int, default=0.001)
+parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--input-dim', type=int, default=9)
-parser.add_argument('--hidden-dim', type=int, default=64)
+parser.add_argument('--hidden-dim', type=int, default=32)
 parser.add_argument('--n-layers', type=int, default=2)
 parser.add_argument('--dropout', type=float, default=0.3)
 parser.add_argument('--gr4j-run-dir', type=str, default='/project/results/gr4j')
@@ -163,12 +163,12 @@ def train_and_evaluate(train_ds, val_ds,
     train_ds = torchdata.TensorDataset(X_train, y_train)
     train_dl = torchdata.DataLoader(train_ds, 
                                     batch_size=batch_size, 
-                                    shuffle=False)
+                                    shuffle=True)
 
     val_ds = torchdata.TensorDataset(X_val, y_val)
     val_dl = torchdata.DataLoader(val_ds, 
                                   batch_size=batch_size,
-                                  shuffle=False)
+                                  shuffle=True)
 
     # Create lstm model
     model = LSTM(input_dim=kwargs['input_dim'],
@@ -182,7 +182,7 @@ def train_and_evaluate(train_ds, val_ds,
     loss_fn = nn.MSELoss()
 
     # Early stopping
-    early_stopper = EarlyStopper(patience=10, min_delta=0.01)
+    early_stopper = EarlyStopper(patience=5, min_delta=0.01)
 
     pbar = tqdm(range(1, n_epoch+1))
 
@@ -208,7 +208,7 @@ def train_and_evaluate(train_ds, val_ds,
     
     # Evaluate on val data
     nse_val, nnse_val, fig_val = evaluate_preds(model, prod_store,
-                                                train_ds, batch_size,
+                                                val_ds, batch_size,
                                                 y_mu, y_sigma)
    
     fig_val.savefig(os.path.join(plot_dir, f"{station_id}_val.png"))
@@ -239,6 +239,8 @@ def train_and_evaluate(train_ds, val_ds,
 if __name__ == '__main__':
     # Parse command line arguments
     args = parser.parse_args()
+
+    print(args)
 
     if args.station_id is None:
 

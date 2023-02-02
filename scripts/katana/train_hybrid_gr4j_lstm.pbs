@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#PBS -N gr4j_lstm
+#PBS -l select=1:ncpus=8:mem=16gb 
+#PBS -l walltime=12:00:00 
+#PBS -M arpit.kapoor@unsw.edu.au 
+#PBS -m ae
+#PBS -j oe
+#PBS -o /home/z5370003/logs/train_hybrid_gr4j_lstm_48.log
+
+cd $PBS_O_WORKDIR
+
+~/miniconda3/envs/hydroml/bin/python train_hybrid_gr4j_lstm.py --data-dir ~/data/camels/aus --sub-dir no-scale-seq --run-dir ~/results/hygr4j_lstm_32_2 --gr4j-run-dir ~/results/gr4j_2 --dropout 0.2 --hidden-dim 48 --lr 0.001 --n-layers 1 --window-size 7
