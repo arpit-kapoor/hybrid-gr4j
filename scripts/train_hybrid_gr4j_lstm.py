@@ -1,5 +1,6 @@
 import argparse
 import datetime as dt
+import json
 import os
 import sys
 
@@ -19,7 +20,6 @@ from model.ml.lstm import LSTM
 from model.hydro.gr4j_prod import ProductionStorage
 from model.utils.training import EarlyStopper
 from model.utils.evaluation import evaluate
-from model.optim.pso_np import PSO
 from data.utils import read_dataset_from_file, get_station_list
 
 
@@ -32,13 +32,16 @@ parser.add_argument('--station-id', type=str, default=None)
 parser.add_argument('--run-dir', type=str, default='/project/results/lstm')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--n-epoch', type=int, default=300)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--weight-decay', type=float, default=0.02)
 parser.add_argument('--input-dim', type=int, default=9)
 parser.add_argument('--hidden-dim', type=int, default=32)
+parser.add_argument('--lstm-dim', type=int, default=64)
 parser.add_argument('--n-layers', type=int, default=2)
-parser.add_argument('--dropout', type=float, default=0.3)
+parser.add_argument('--dropout', type=float, default=0.2)
 parser.add_argument('--gr4j-run-dir', type=str, default='/project/results/gr4j')
-parser.add_argument('--window-size', type=int, default=4)
+parser.add_argument('--window-size', type=int, default=5)
+parser.add_argument('--q-in', action='store_true')
 
 
 # ----
@@ -63,7 +66,7 @@ def train_step(model, dl, loss_fn, opt):
         opt.step()
     return (total_loss/i).detach()
 
-def evaluate_preds(model, prod_store, ds, batch_size, y_mu, y_sigma):
+def evaluate_preds(model, prod_store, ds, batch_size, y_mu, y_sigma, q_in):
     # Evaluate on train data
     model.eval()
     dl = torchdata.DataLoader(ds, 
@@ -83,7 +86,10 @@ def evaluate_preds(model, prod_store, ds, batch_size, y_mu, y_sigma):
         Q.append((y*y_sigma+y_mu).detach().numpy())
         Q_hat.append((y_hat*y_sigma+y_mu).detach().numpy())
         
-        X_inv = X[:, -1]*prod_store.sigma+prod_store.mu
+        if q_in:
+            X_inv = X[:, -1, :-1]*prod_store.sigma+prod_store.mu
+        else:
+            X_inv = X[:, -1]*prod_store.sigma+prod_store.mu
         
         P.append((X_inv[:, 0]).detach().numpy())
         ET.append((X_inv[:, 1]).detach().numpy())
@@ -97,17 +103,27 @@ def evaluate_preds(model, prod_store, ds, batch_size, y_mu, y_sigma):
     return evaluate(P, ET, Q, Q_hat)
 
 
-def create_sequence(X, y, window_size):
+def create_sequence(X, y, window_size, q_in):
 
         assert window_size is not None, "Window size cannot be NoneType."
 
         # Create empyty sequences
         Xs, ys = [], []
 
-        # Add sequences to Xs and ys
-        for i in range(len(X)-window_size):
-            Xs.append(X[i: (i + window_size)])
-            ys.append(y[i + window_size-1])
+        if q_in:
+            # Add sequences to Xs and ys
+            for i in range(1, len(X) - window_size):
+                Xs.append(torch.concat([
+                                        X[i: (i + window_size)], 
+                                        y[i-1: (i + window_size - 1)]
+                                    ], dim=1)
+                        )
+                ys.append(y[i + window_size - 1])
+        else:
+            # Add sequences to Xs and ys
+            for i in range(len(X)-window_size):
+                Xs.append(X[i: (i + window_size)])
+                ys.append(y[i + window_size-1])
 
         Xs, ys = torch.stack(Xs), torch.stack(ys)
 
@@ -120,14 +136,6 @@ def train_and_evaluate(train_ds, val_ds,
                         run_dir='/project/results/lstm',
                         gr4j_run_dir='/project/results/gr4j',
                         **kwargs):
-    
-    # Create Directories
-    if not os.path.exists(run_dir):
-        os.makedirs(run_dir)
-
-    plot_dir = os.path.join(run_dir, 'plots')
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
 
     # Get tensors from dataset
     t_train, X_train, y_train = train_ds.tensors
@@ -152,12 +160,16 @@ def train_and_evaluate(train_ds, val_ds,
 
     # Create production storage instance
     prod_store = ProductionStorage(x1=x1)
-    inp_train = prod_store(X_train)
-    inp_val = prod_store(X_val)
+    inp_train = prod_store(X_train, include_x=True)[0]
+    inp_val = prod_store(X_val, include_x=True)[0]
 
     # Create Input sequence
-    X_train, y_train = create_sequence(inp_train, y_train, window_size=kwargs['window_size'])
-    X_val, y_val = create_sequence(inp_val, y_val, window_size=kwargs['window_size'])
+    X_train, y_train = create_sequence(inp_train, y_train, 
+                                       window_size=kwargs['window_size'],
+                                       q_in=kwargs['q_in'])
+    X_val, y_val = create_sequence(inp_val, y_val, 
+                                   window_size=kwargs['window_size'], 
+                                   q_in=kwargs['q_in'])
 
     # Create Sequence Datasets and DataLoaders
     train_ds = torchdata.TensorDataset(X_train, y_train)
@@ -173,16 +185,19 @@ def train_and_evaluate(train_ds, val_ds,
     # Create lstm model
     model = LSTM(input_dim=kwargs['input_dim'],
                  hidden_dim=kwargs['hidden_dim'],
+                 lstm_dim=kwargs['lstm_dim'],
                  output_dim=1,
                  n_layers=kwargs['n_layers'],
                  dropout=kwargs['dropout'])
     
     # Create optimizer and loss instance
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    opt = torch.optim.Adam(model.parameters(), lr=lr,
+                           weight_decay=kwargs['weight_decay'],
+                           betas=(0.89, 0.97))
     loss_fn = nn.MSELoss()
 
     # Early stopping
-    early_stopper = EarlyStopper(patience=5, min_delta=0.01)
+    early_stopper = EarlyStopper(patience=10, min_delta=0.01)
 
     pbar = tqdm(range(1, n_epoch+1))
 
@@ -202,14 +217,21 @@ def train_and_evaluate(train_ds, val_ds,
     # Evaluate on train data
     nse_train, nnse_train, fig_train = evaluate_preds(model, prod_store,
                                                       train_ds, batch_size,
-                                                      y_mu, y_sigma)
+                                                      y_mu, y_sigma,
+                                                      q_in=kwargs['q_in'])
+    
+    print(f"Train NSE: {nse_train:.3f}")
+    print(f"Train Normalized NSE: {nnse_train:.3f}")
    
     fig_train.savefig(os.path.join(plot_dir, f"{station_id}_train.png"))
     
     # Evaluate on val data
     nse_val, nnse_val, fig_val = evaluate_preds(model, prod_store,
                                                 val_ds, batch_size,
-                                                y_mu, y_sigma)
+                                                y_mu, y_sigma,
+                                                q_in=kwargs['q_in'])
+    print(f"Validation NSE: {nse_val:.3f}")
+    print(f"Validation Normalized NSE: {nnse_val:.3f}")
    
     fig_val.savefig(os.path.join(plot_dir, f"{station_id}_val.png"))
 
@@ -239,6 +261,21 @@ def train_and_evaluate(train_ds, val_ds,
 if __name__ == '__main__':
     # Parse command line arguments
     args = parser.parse_args()
+
+    if args.q_in:
+        args.input_dim += 1
+
+    # Create Directories
+    if not os.path.exists(args.run_dir):
+        os.makedirs(args.run_dir)
+
+    plot_dir = os.path.join(args.run_dir, 'plots')
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+    
+    with open(os.path.join(args.run_dir, 'run_params.json'), 'w') as f_args:
+        json.dump(vars(args), f_args, indent=2)
+
 
     print(args)
 

@@ -14,9 +14,6 @@ def evaluate(P: np.ndarray, E: np.ndarray, Q: np.ndarray, Q_hat:np.ndarray, plot
     nse_score = nse(Q, Q_hat)
     nnse_score = normalize(nse_score)
 
-    # print(f"NSE: {nse_score:.3f}")
-    # print(f"Normalized NSE: {nnse_score:.3f}")
-
 
     # Plot hydrograph
     if plot:
