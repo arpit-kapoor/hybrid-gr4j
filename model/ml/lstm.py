@@ -4,12 +4,15 @@ import torch.nn as nn
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, dropout=0.5):
+    def __init__(self, input_dim, lstm_dim, hidden_dim, output_dim, n_layers, dropout=0.5):
                 
         super().__init__()
 
         # Input Dims
         self.input_dim = input_dim
+
+        # LSTM hidden dims
+        self.lstm_dim = lstm_dim
 
         # Hidden Dims
         self.hidden_dim = hidden_dim
@@ -21,12 +24,12 @@ class LSTM(nn.Module):
 
         # RNN layer
         self.lstm_layer = nn.LSTM(self.input_dim, 
-                                self.hidden_dim, 
+                                self.lstm_dim, 
                                 self.n_layers, 
                                 batch_first=True)
         
         # Fully-connected output layer
-        self.fc1 = nn.Linear(self.hidden_dim,
+        self.fc1 = nn.Linear(self.lstm_dim*2,
                             self.hidden_dim)
 
         self.fc2 = nn.Linear(self.hidden_dim,
@@ -52,7 +55,7 @@ class LSTM(nn.Module):
         out, (hidden, cell) = self.lstm_layer(x, (hidden, cell))
 
         # Reshaping the outputs such that it can be fit into the fully connected layer
-        out = torch.tanh(out[:, -1, :].contiguous().view(-1, self.hidden_dim))
+        out = torch.tanh(out[:, -2:, :].contiguous().view(batch_size, -1))
         out = self.do(out)
         out = torch.tanh(self.fc1(out))
         out = self.fc2(out)
@@ -65,8 +68,8 @@ class LSTM(nn.Module):
                 Helper function.
         Returns a hidden state with specified batch size. Defaults to 1
         """
-        h_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim, requires_grad=False)
-        c_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim, requires_grad=False)
+        h_0 = torch.zeros(self.n_layers, batch_size, self.lstm_dim, requires_grad=False)
+        c_0 = torch.zeros(self.n_layers, batch_size, self.lstm_dim, requires_grad=False)
         return h_0, c_0
     
 
