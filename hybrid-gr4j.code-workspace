@@ -1,16 +1,16 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "/project"
 		},
 		{
-			"path": "../../data"
+			"path": "/data"
 		},
 		{
-			"path": "../../logs"
+			"path": "/logs"
 		},
 		{
-			"path": "../../results"
+			"path": "/results"
 		}
 	],
 	"settings": {}

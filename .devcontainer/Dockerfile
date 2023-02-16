@@ -16,6 +16,7 @@ RUN pip install torchmetrics
 RUN pip install pyro-ppl
 RUN pip install pymc3
 RUN pip install pyyaml
+RUN pip install jax flax clu
 
 # Install RRMPG
 RUN mkdir /tmp-pkg 
