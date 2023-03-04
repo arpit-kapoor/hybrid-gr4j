@@ -18,11 +18,11 @@ def evaluate(P: np.ndarray, E: np.ndarray, Q: np.ndarray, Q_hat:np.ndarray, plot
     # Plot hydrograph
     if plot:
         
-        fig, ax = plt.subplots(figsize=(16, 6))
-        ax.plot(Q, color='black', label='obs', alpha=1.0)
-        ax.plot(Q_hat, color='red', label='pred', alpha=0.75)
+        fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(P, 'g--', label='precip', alpha=0.40)
         ax.plot(E, 'y--', label='etp', alpha=0.30)
+        ax.plot(Q, color='black', label='obs', alpha=1.0)
+        ax.plot(Q_hat, color='red', label='pred', alpha=0.75)
 
         ax.set_xlabel('Timestep')
         ax.set_ylabel('Flow (mm/day)')

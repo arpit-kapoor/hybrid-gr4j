@@ -76,6 +76,7 @@ class ProductionStorage(nn.Module):
         # Expand dim
         p_n = p_n[:, None]
         e_n = e_n[:, None]
+        e_s = torch.stack(e_s_list)[:, None]
         p_s = torch.stack(p_s_list)[:, None] 
         perc = torch.stack(perc_list)[:, None]
         s_store = torch.stack(s_store_list)[:, None] 

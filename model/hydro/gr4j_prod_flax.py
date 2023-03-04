@@ -16,33 +16,27 @@ class ProductionStorage(nn.Module):
         # self.s = self.param('s', constant(self.s_init), (1,))
         self.x1 = self.param('x1', constant(self.x1_init), (1,))
 
+    def calculate_precip_store(self, s_store, p_n, x1):
+        """Calculates the amount of rainfall which enters the storage reservoir."""
+        n = x1*(1 - (s_store / x1)**2) * nn.tanh(p_n/x1)
+        d = 1 + (s_store / x1) * nn.tanh(p_n / x1)
+        return n/d
+
+    # Determines the evaporation loss from the production store
+    def calculate_evap_store(self, s_store, e_n, x1):
+        """Calculates the amount of evaporation out of the storage reservoir."""
+        n = s_store * (2 - s_store / x1) * nn.tanh(e_n/x1)
+        d = 1 + (1- s_store/x1) * nn.tanh(e_n / x1)
+        return n/d
+
     def time_update(self, carry, t_input):
-        # first calculate the net precipitation effect on stores
-        is_gain = t_input[0] >= t_input[1]
-        p_n_gain = t_input[0] - t_input[1]
-        p_n_loss = jnp.float32(0.0)
-        pe_n_loss = t_input[1] - t_input[0]
-        pe_n_gain = jnp.float32(0.0)
 
-        # calculate the evaporation effect on production store
-        e_s_gain = jnp.float32(0.0)
-        e_s_loss = jnp.divide(
-            carry['s_store'] * (2 - carry['s_store']/carry['x1']) * jnp.tanh(pe_n_loss / carry['x1']),
-            1 + (1 - carry['s_store'] / carry['x1']) * jnp.tanh(pe_n_loss / carry['x1'])
-        ) 
+        precip_difference = t_input[0] - t_input[1]
+        p_n  = nn.leaky_relu(precip_difference)
+        e_n  = nn.leaky_relu(-precip_difference)
 
-        # calculate the precipitation effect on production store
-        p_s_gain = jnp.divide(
-            carry['x1'] * (1 - (carry['s_store']  / carry['x1'])**2) * jnp.tanh(p_n_gain/carry['x1']),
-            1 + (carry['s_store']  / carry['x1']) * jnp.tanh(p_n_gain / carry['x1'])
-        ) 
-        p_s_loss = jnp.float32(0.0) 
-
-        # avoiding if statements
-        e_n = pe_n_gain * is_gain + pe_n_loss * (1 - is_gain)
-        p_n = p_n_gain * is_gain + p_n_loss * (1 - is_gain)
-        p_s = p_s_gain * is_gain + p_s_loss * (1 - is_gain)
-        e_s = e_s_gain * is_gain + e_s_loss * (1 - is_gain)
+        p_s = self.calculate_precip_store(carry['s_store'], p_n, carry['x1'])
+        e_s = self.calculate_evap_store(carry['s_store'], e_n, carry['x1'])
 
         # update the s store
         tmp_s_store = carry['s_store'] + p_s - e_s
