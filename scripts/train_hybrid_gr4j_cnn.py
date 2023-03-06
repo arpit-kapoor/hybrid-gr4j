@@ -24,7 +24,7 @@ from data.utils import read_dataset_from_file, get_station_list
 
 
 # Create parser
-parser = argparse.ArgumentParser(description="Train Hybrid GR4J-LSTM model on CAMELS dataset")
+parser = argparse.ArgumentParser(description="Train Hybrid GR4J-CNN model on CAMELS dataset")
 
 parser.add_argument('--data-dir', type=str, default='/data/camels/aus/')
 parser.add_argument('--sub-dir', type=str, required=True)
