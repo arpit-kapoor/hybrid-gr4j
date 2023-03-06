@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     if args.station_id is None:
 
-        station_ids = get_station_list(args.data_dir, args.sub_dir)[:10]
+        station_ids = get_station_list(args.data_dir, args.sub_dir)
         
         for ind, station_id in enumerate(station_ids):
             print(f"\n{ind+1}/{len(station_ids)}: Reading data for station_id: {station_id}\n")
