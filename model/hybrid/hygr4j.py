@@ -7,19 +7,22 @@ import jax.numpy as jnp
 from typing import Tuple
 from flax import linen as nn
 
-sys.path.append("/project")
+sys.path.append("~/project")
 
-from model.hydro.gr4j_prod_flax import ProductionStorage
-from model.ml.cnn_flax import ConvNet
-
+from model.hydro.flax import ProductionStorage
+from model.ml.flax import ConvNet, LSTM
 
 class HyGR4J(nn.Module):
     # Attributes
+    dl_model: str
     x1_init: float
     s_init: float
     x_mu: np.ndarray
     x_sigma: np.ndarray
     n_filters: tuple=(8, 8, 6)
+    hidden_dim: int = 16
+    lstm_dim: int = 32
+    output_dim: int = 1
     dropout_p: float=0.2
     window_size: int=7
     training: bool=True
@@ -33,11 +36,20 @@ class HyGR4J(nn.Module):
                                              s_init=self.s_init,
                                              scale=self.scale)
         
-        # Deep Learning model -- CNN
-        self._model = ConvNet(n_filters=self.n_filters,
-                              dropout_p=self.dropout_p,
-                              training=self.training)
-    
+        # Deep Learning model
+        if self.dl_model == 'CNN':
+            self._model = ConvNet(n_filters=self.n_filters,
+                                  dropout_p=self.dropout_p,
+                                  training=self.training)
+        elif self.dl_model == 'LSTM':
+            self._model = LSTM(hidden_dim=self.hidden_dim,
+                               lstm_dim=self.lstm_dim,
+                               output_dim=self.output_dim,
+                               dropout_p=self.dropout_p,
+                               training=self.training)
+        else:
+            raise(ValueError("dl_model must be either `CNN` or `LSTM`!"))
+
     
     def create_sequence(self, X:jnp.ndarray, q:jnp.ndarray):
         """Create Sequences from 2D Inputs and Labels
@@ -64,7 +76,8 @@ class HyGR4J(nn.Module):
                                 ], axis=1))
 
         Xs = jnp.stack(Xs)
-        Xs = jnp.expand_dims(Xs, axis=3)
+        if self.dl_model == 'CNN':
+            Xs = jnp.expand_dims(Xs, axis=3)
 
         return Xs
 

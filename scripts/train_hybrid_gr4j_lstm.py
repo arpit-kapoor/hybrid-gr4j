@@ -16,8 +16,8 @@ from tqdm import tqdm
 
 sys.path.append("../")
 
-from model.ml.lstm import LSTM
-from model.hydro.gr4j_prod import ProductionStorage
+from model.ml import LSTM
+from model.hydro import ProductionStorage
 from model.utils.training import EarlyStopper
 from model.utils.evaluation import evaluate
 from data.utils import read_dataset_from_file, get_station_list

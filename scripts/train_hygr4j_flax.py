@@ -21,7 +21,7 @@ from flax import struct
 
 sys.path.append('../')
 from model.hybrid import HyGR4J
-from model.hydro.gr4j_prod_flax import ProductionStorage
+from model.hydro.flax import ProductionStorage
 from model.utils.training import EarlyStopper
 from model.utils.evaluation import nse, normalize
 from data.utils import read_dataset_from_file, get_station_list
@@ -39,12 +39,16 @@ parser.add_argument('--run-dir', type=str, default='/project/results/hygr4j')
 parser.add_argument('--batch-size', type=int, default=256)
 parser.add_argument('--n-epoch', type=int, default=300)
 parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--dl-model', type=str, default='CNN')
 parser.add_argument('--weight-decay', type=float, default=0.04)
 parser.add_argument('--n-filters', nargs='+', type=int)
 parser.add_argument('--n-features', type=int, default=5)
 parser.add_argument('--dropout', type=float, default=0.2)
 parser.add_argument('--window-size', type=int, default=7)
-# parser.add_argument('--q-in', action='store_true')
+parser.add_argument('--input-dim', type=int, default=10)
+parser.add_argument('--hidden-dim', type=int, default=32)
+parser.add_argument('--output-dim', type=int, default=1)
+parser.add_argument('--lstm-dim', type=int, default=64)
 parser.add_argument('--x1-init', type=float, default=0.6)
 parser.add_argument('--s-init', type=float, default=0.0)
 parser.add_argument('--scale', type=float, default=1000.0)
@@ -244,10 +248,26 @@ def train_and_evaluate(train_ds, val_ds,
     y_val = (y_val - y_mu)/y_sigma
 
     # Create model instance
-    hygr4j = HyGR4J(x1_init=kwargs['x1_init'], s_init=kwargs['s_init'], 
-                n_filters=kwargs['n_filters'], dropout_p=kwargs['dropout'],
-                x_mu=x_mu, x_sigma=x_sigma, window_size=kwargs['window_size'],
-                scale=kwargs['scale'])
+    if kwargs['dl_model'] == 'CNN':
+        hygr4j = HyGR4J(dl_model=kwargs['dl_model'],
+                        x1_init=kwargs['x1_init'], 
+                        s_init=kwargs['s_init'], 
+                        n_filters=kwargs['n_filters'], 
+                        dropout_p=kwargs['dropout'],
+                        x_mu=x_mu, x_sigma=x_sigma, 
+                        window_size=kwargs['window_size'],
+                        scale=kwargs['scale'])
+    else:
+        hygr4j = HyGR4J(dl_model=kwargs['dl_model'],
+                        x1_init=kwargs['x1_init'], 
+                        s_init=kwargs['s_init'], 
+                        dropout_p=kwargs['dropout'],
+                        lstm_dim=kwargs['lstm_dim'], 
+                        hidden_dim=kwargs['hidden_dim'],
+                        output_dim=kwargs['output_dim'],
+                        x_mu=x_mu, x_sigma=x_sigma, 
+                        window_size=kwargs['window_size'],
+                        scale=kwargs['scale'])
     
     # Create dataset and Dataloader
     train_ds = torchdata.TensorDataset(X_train, y_train)
@@ -386,7 +406,7 @@ if __name__=='__main__':
 
     if args.station_id is None:
 
-        station_ids = get_station_list(args.data_dir, args.sub_dir)[:10]
+        station_ids = get_station_list(args.data_dir, args.sub_dir)[216:]
         
         for ind, station_id in enumerate(station_ids):
 

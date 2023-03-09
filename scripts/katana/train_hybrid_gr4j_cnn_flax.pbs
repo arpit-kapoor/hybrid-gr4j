@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#PBS -N gr4j_cnn_flax
+#PBS -l select=1:ncpus=8:mem=16gb 
+#PBS -l walltime=12:00:00 
+#PBS -M arpit.kapoor@unsw.edu.au 
+#PBS -m ae
+#PBS -j oe
+#PBS -o /home/z5370003/logs/train_hygr4j_cnn_flax.log
+
+cd $PBS_O_WORKDIR
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/miniconda3/envs/hydroml/lib
+
+~/miniconda3/envs/hydroml/bin/python train_hygr4j_cnn_flax.py --data-dir ~/data/camels/aus --sub-dir no-scale-seq --run-dir ~/results/hygr4j_cnn_flax --n-filters 8 8 6 --weight-decay 0.06
