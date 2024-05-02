@@ -8,7 +8,7 @@ We present synergy of Conceptual hydrological model GR4J and Convolutional Neura
 Please refer to the `environment.yml` file for the Python requirements of this project.
 
 - Step 1: Download the data
-  This project uses the `camels-aus-py` library for downloading and managing the camels-aus dataset. Please refer to the steps here to download data into the `<Path to DeepGR4J Repo>/data/camels/aus`
+  This project uses the `camels-aus-py` library for downloading and managing the camels-aus dataset. Please refer to the steps [here](https://camels-aus-py.readthedocs.io/en/latest/) to download data into the `<Path to DeepGR4J Repo>/data/camels/aus`
 - Step 2: Create train and test datasets
   ```
   $ cd scripts
