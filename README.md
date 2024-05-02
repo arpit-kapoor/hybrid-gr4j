@@ -19,7 +19,7 @@ Please refer to the `environment.yml` file for the Python requirements of this p
   $ cd scripts
   $ python calibrate_gr4j.py --data-dir ../data/camels/aus --sub-dir no-scale-seq --run-dir ../results/gr4j
   ```
-- Step 4: Train DeepGR4J LSTM model
+- Step 4: Train DeepGR4J CNN model
   ```console
   $ cd scripts
   $ python train_hybrid_gr4j_cnn.py --data-dir ../data/camels/aus --sub-dir no-scale-seq --run-dir ../results/deepgr4j_cnn_qin --gr4j-run-dir ../results/gr4j --dropout 0.1 --lr 0.001 --n-filters 8 8 6 --window-size 7 --q-in
